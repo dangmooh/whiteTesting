@@ -1,0 +1,53 @@
+name: CI for C Code (Google Test)
+
+# 트리거 조건 설정
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest  # Ubuntu 최신 환경 사용
+
+    steps:
+    # 저장소 코드 체크아웃
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # 필요한 빌드 툴 설치 (CMake, GCC, G++)
+    - name: Set up Build Environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake gcc g++
+
+    # 빌드 수행 (CMake 이용)
+    - name: Build Project
+      run: |
+        mkdir build
+        cd build
+        cmake ..  # 최상위 폴더의 CMakeLists.txt 호출
+        make
+
+    # 단위 테스트 실행
+    - name: Run Unit Tests
+      run: |
+        cd build
+        ctest --output-on-failure
+
+    # 코드 커버리지 분석 (lcov/gcov 사용 예시)
+    - name: Generate Code Coverage
+      run: |
+        sudo apt-get install -y lcov
+        cd build
+        lcov --capture --directory . --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' --output-file coverage.info
+        lcov --list coverage.info
+
+    # 테스트와 코드 커버리지 결과 GitHub 업로드 (옵션)
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: build/coverage.info
